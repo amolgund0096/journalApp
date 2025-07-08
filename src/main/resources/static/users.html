@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Users Management</title>
+
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+
+</head>
+<body class="bg-light py-4">
+
+  <div class="card shadow-sm">
+	<div class="card-header mt-2">
+		<h1 class="card-title align-items-start flex-column">
+			<span class="card-label text-gray-900 fw-bold text-uppercase fs-3 mb-1">Users Management</span>
+		</h1>
+		<br><br>
+
+    <form id="userForm" class="mb-4">
+      <input type="hidden" id="userId" />
+      <div class="row g-3">
+        <div class="col-md-5">
+          <input type="text" id="name" class="form-control" placeholder="Name" required />
+        </div>
+        
+        <div class="col-md-5">
+          <input type="email" id="email" class="form-control" placeholder="Email" required />
+        </div>
+        
+        <div class="col-md-5">
+          <input type="text" id="contact" class="form-control" placeholder="contact" required />
+        </div>
+        
+        <div class="col-md-2 d-grid">
+          <button type="submit" class="btn btn-primary" id="submitButton">Add User</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped" id="usersTable">
+        <thead class="table-light">
+          <tr>
+          <th style="text-align:center;">ID</th>
+          <th style="text-align:center;">Name</th>
+          <th style="text-align:center;">Email</th>
+          <th style="text-align:center;">Contact</th>
+          <th style="text-align:center;">Actions</th>
+           </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+  <!-- JavaScript -->
+  <script>
+    const apiUrl = 'http://localhost:8080/api/users';
+
+    async function loadUsers() {
+      try {
+        const res = await fetch(apiUrl);
+        if (!res.ok) throw new Error('Failed to fetch users');
+        const users = await res.json();
+        const tbody = document.querySelector('#usersTable tbody');
+        tbody.innerHTML = '';
+        users.forEach(user => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+          
+            <td style="text-align:center;">${user.id}</td>
+            <td style="text-align:center;">${user.name}</td>
+            <td style="text-align:center;">${user.email}</td>
+            <td style="text-align:center;">${user.contact}</td>
+            <td style="text-align:center;">
+              <button class="btn btn-sm btn-warning me-2" onclick="editUser(${user.id}, '${user.name}', '${user.email}')">Edit</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    document.getElementById('userForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = document.getElementById('userId').value;
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const contact = document.getElementById('contact').value.trim();
+
+      if (!name || !email) {
+        alert('Please enter both name and email');
+        return;
+      }
+
+      try {
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${apiUrl}/${id}` : apiUrl;
+
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email , contact })
+        });
+
+        if (!res.ok) throw new Error('Failed to save user');
+
+		Swal.fire({
+			text : 'User Added Suiccessfully',
+			icon : 'success'
+		}).then(() => {
+		      location.reload(); // reloads the page after OK is clicked
+	    });
+        
+        document.getElementById('userForm').reset();
+        document.getElementById('userId').value = '';
+        document.getElementById('submitButton').textContent = 'Add User';
+        loadUsers();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    function editUser(id, name, email) {
+      document.getElementById('userId').value = id;
+      document.getElementById('name').value = name;
+      document.getElementById('email').value = email;
+      document.getElementById('contact').value = contact;
+      document.getElementById('submitButton').textContent = 'Update User';
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Are you sure you want to delete this user?')) return;
+
+      try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete user');
+        Swal.fire({
+        	  text: 'User deleted successfully!',
+        	  icon: 'success',
+        	  confirmButtonText: 'OK'
+        	}).then(() => {
+        	      location.reload(); // reloads the page after OK is clicked
+            });
+
+        loadUsers();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    loadUsers();
+  </script>
+
+</body>
+</html>
